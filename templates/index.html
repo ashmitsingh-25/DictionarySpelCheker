@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wordwise · Dictionary with Spell Checker</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script defer src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+<body>
+  <main>
+    <header><a class="brand" href="/">W<span>Wordwise</span></a><span class="badge">ADS MINI PROJECT</span></header>
+    <section class="intro">
+      <p class="eyebrow">A LITTLE HELP WITH EVERY WORD</p>
+      <h1>Find the word.<br><span>Get it right.</span></h1>
+      <p>Search the dictionary, explore words by prefix, or find the closest spelling in a few keystrokes.</p>
+    </section>
+    <section class="card" aria-labelledby="search-title">
+      <h2 id="search-title">Dictionary & spell checker</h2>
+      <form id="search-form">
+        <label for="word">Enter a word</label>
+        <div class="input-row"><input id="word" name="word" type="text" maxlength="50" placeholder="Try apple, alg, or dictionry" autocomplete="off" spellcheck="false" required aria-describedby="word-help"><button type="submit" id="check-button">Check spelling <span aria-hidden="true">→</span></button></div>
+        <p class="hint" id="word-help">English letters only · Up to 50 characters · Case insensitive</p>
+      </form>
+      <p id="status" role="status" aria-live="polite">Ready when you are. Enter a word to begin.</p>
+      <div class="results-grid">
+        <section><h3>Prefix autocomplete <span>TRIE</span></h3><p class="hint">Words that begin with what you type.</p><div id="autocomplete" class="chips"><p class="empty">Your matching words will appear here.</p></div></section>
+        <section><h3>Closest spellings <span>EDIT DISTANCE</span></h3><p class="hint">Up to five matches, ordered by edits, then A–Z.</p><div id="suggestions" class="chips"><p class="empty">Check a spelling to see suggestions.</p></div></section>
+      </div>
+      <section class="definition-panel" aria-labelledby="definition-title">
+        <h3 id="definition-title">Word meaning <span>ONLINE DICTIONARY</span></h3>
+        <button type="button" id="online-lookup" class="secondary" hidden>Look up meaning online</button>
+        <p id="definition-status" role="status" aria-live="polite">Check a local word to load its meaning automatically.</p>
+        <div id="definition-content"></div>
+      </section>
+    </section>
+    <footer>Built with a Trie & Levenshtein distance <span>Python + Flask</span></footer>
+  </main>
+</body>
+</html>

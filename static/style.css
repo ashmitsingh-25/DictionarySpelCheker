@@ -1,0 +1,48 @@
+:root { color-scheme: light; font-family: "Segoe UI", Arial, sans-serif; color: #24352f; background: #f5f6f0; }
+[hidden] { display: none !important; }
+.definition-panel { margin-top: 22px; border-top: 1px solid #e5e9e1; padding-top: 16px; overflow-wrap: anywhere; }
+#definition-status, .attribution { font-size: 13px; color: #607067; }
+.definition-panel h4 { font-size: 22px; margin: 16px 0 4px; }
+.definition-panel li { margin-bottom: 18px; padding-left: 5px; }
+.definition-panel li p { margin: 5px 0; }
+.definition-panel a { color: #286a4e; }
+.phonetic, .example { color: #607067; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 1040px; margin: auto; padding: 32px 28px; }
+header, .brand, .input-row, footer { display: flex; align-items: center; }
+header, footer { justify-content: space-between; gap: 16px; }
+.brand { gap: 12px; color: #25674d; font-weight: 800; font-size: 26px; text-decoration: none; }
+.brand span { font-size: 20px; color: #24352f; }
+.badge { font-size: 11px; letter-spacing: 1.3px; border: 1px solid #cad4c8; padding: 8px 11px; border-radius: 6px; }
+.intro { margin: 64px 0 35px; max-width: 650px; }
+.eyebrow { color: #427158; font-weight: 700; font-size: 11px; letter-spacing: 1.7px; }
+h1 { font-size: clamp(38px, 6vw, 60px); line-height: 1.08; letter-spacing: -2px; margin: 17px 0; font-weight: 650; }
+h1 span { color: #388260; }
+p { line-height: 1.65; }
+.intro > p:last-child { color: #607067; }
+.card { background: white; border: 1px solid #dde3d8; border-radius: 18px; padding: 30px; box-shadow: 0 8px 30px #29462b05; }
+h2 { font-size: 21px; margin: 0 0 24px; letter-spacing: -.4px; }
+label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 9px; }
+.input-row { gap: 10px; }
+input { min-width: 0; width: 100%; padding: 15px; border: 1px solid #cbd5cb; border-radius: 9px; font: inherit; background: #fdfefa; }
+button { border: 0; border-radius: 9px; padding: 16px 22px; background: #286a4e; color: white; cursor: pointer; font: inherit; font-size: 14px; font-weight: 600; white-space: nowrap; }
+button:hover { background: #19553b; }
+button:disabled { opacity: .6; cursor: wait; }
+:focus-visible { outline: 3px solid #7cae85; outline-offset: 3px; }
+.hint { font-size: 12px; color: #657467; margin: 10px 0; }
+#status { background: #f0f5ed; border-radius: 9px; padding: 14px 16px; font-size: 14px; margin: 22px 0; }
+.error { color: #a23122 !important; }
+.success { color: #246442 !important; }
+.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; border-top: 1px solid #e5e9e1; padding-top: 16px; }
+h3 { font-size: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+h3 span { font-size: 9px; color: #5e725f; background: #edf2e9; padding: 4px 6px; border-radius: 4px; letter-spacing: .6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; min-height: 55px; }
+.chip { color: #31573b; background: #eff5ea; padding: 8px 12px; font-weight: 500; white-space: normal; overflow-wrap: anywhere; }
+.chip:hover { background: #dcebd4; }
+.chip small { margin-left: 8px; color: #5c6c55; }
+.empty { font-size: 13px; color: #6c766b; }
+.secondary { background: #e3edda; color: #2c583b; }
+.secondary:hover { background: #d1e1c6; }
+footer { color: #697564; font-size: 12px; margin: 28px 0 8px; }
+@media (max-width: 680px) { main { padding: 24px 16px; } .intro { margin-top: 45px; } .card { padding: 22px 18px; } .results-grid { grid-template-columns: 1fr; gap: 18px; } .input-row { flex-direction: column; align-items: stretch; } footer { align-items: flex-start; flex-direction: column; gap: 5px; } .badge { font-size: 9px; } }
