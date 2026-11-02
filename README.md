@@ -18,8 +18,6 @@ Free Dictionary API. The responsive Wordwise interface uses plain HTML, CSS and 
 - Provider source and license attribution, safe text rendering, and protection
   against older requests overwriting a newer search.
 - Independent local results: spelling and autocomplete still work without internet.
-- Backend support for persistent custom words. **There is no custom-word form in
-  the frontend**; the former “Grow your dictionary” section has been removed.
 
 ## Technology stack
 
@@ -61,7 +59,7 @@ suggestions. Click the `apple` suggestion to check it and display its definition
 
 ```text
 DictionarySpelCheker/
-├── app.py                         # Flask routes, validation, dictionary loading/persistence
+├── app.py                         # Flask routes, validation, dictionary loading
 ├── algorithms.py                  # Manual Trie and Levenshtein implementation
 ├── dictionary_service.py          # Online provider, response parsing and cache
 ├── dictionary.txt                 # Bundled demonstration word list
@@ -79,8 +77,7 @@ DictionarySpelCheker/
 └── README.md
 ```
 
-`.venv/`, Python caches and the optional `custom_words.txt` are local files excluded
-from Git. The custom file is created on the first successful backend word addition.
+`.venv/` and Python caches are local files excluded from Git.
 
 ## Algorithms and complexity
 
@@ -119,21 +116,17 @@ expected O(1); the alphabet is fixed at 26 letters.
 | Trie autocomplete | O(P + VL) upper bound | O(L² + KL), including constructed strings and results |
 | Levenshtein distance | O((M+1)(N+1)); O(MN) for nonempty strings | O(N+1) |
 | Suggestions over W words | O(WQL + WL log W) worst-case bound for nonempty words | O(W + L), excluding stored input words |
-| Load dictionary files | O(S) expected | O(S) for loaded data, Trie and word set |
+| Load dictionary.txt | O(S) expected | O(S) for loaded data, Trie and word set |
 
 Autocomplete constructs `word + character` at each visited edge; copying these
 strings costs up to O(L) per visit. Recursive frames retain partial strings,
 which can occupy O(L²) along a path, beyond the O(L) stack frames. Sorted child
 lists have bounded size. Suggestions sort all candidates, not just five, and
 alphabetical comparisons on distance ties can cost O(L). Their word references,
-ranking tuples and the endpoint's set snapshot require O(W) space. The Trie and
+ranking tuples and candidate deduplication require O(W) space. The Trie and
 word set together occupy O(S) storage.
 
-Backend custom-word addition also reads the existing custom file to handle a
-missing final newline, so its file work is O(B + L) time and O(B) auxiliary space
-for B existing file characters; it is not simply an O(L) Trie operation.
-
-## Local dictionary and persistence
+## Local dictionary
 
 `dictionary.txt` contains 341 unique words assembled as a small demonstration
 list for this project. It was not imported from an external dictionary dataset;
@@ -141,19 +134,12 @@ no upstream word-list source or license notice was supplied. No project license
 has been assigned. This list is not comprehensive or an authoritative spelling
 reference; valid English words, names and technical terms can be absent.
 
-At startup, `app.py` reads the UTF-8 main dictionary and, if present,
-`custom_words.txt`. It ignores blank lines, trims and lowercases words, validates
-1–50 ASCII letters and deduplicates via the Trie/set. Invalid lines or a missing
-main dictionary fail startup clearly. Paths are relative to `app.py`, not the
-terminal's working directory. Edit the main list and restart to load changes.
-
-The retained `POST /api/words` endpoint saves new words to `custom_words.txt` before
-updating memory. Existing saved words continue to load and participate in lookup,
-autocomplete and suggestions. Personal test entries are not distributed with this
-repository. Do not delete your local custom file if you want to keep those words.
-
-A lock coordinates requests inside one server process. It does not coordinate
-multiple processes, and the text file is not transactional storage.
+At startup, `app.py` reads only `dictionary.txt` as UTF-8. It ignores blank lines,
+trims and lowercases words, validates 1–50 ASCII letters and deduplicates via the
+Trie/set. Invalid lines or a missing dictionary fail startup clearly. The file
+path is relative to `app.py`, not the terminal's working directory. Edit the list
+and restart to load changes. The application does not modify dictionary files;
+its local word collection is read-only after startup.
 
 ## Online meanings and attribution
 
@@ -232,7 +218,7 @@ At most 10 words; an unmatched prefix returns an empty list.
 {"word":"aple","suggestions":[{"word":"apple","distance":1},{"word":"apply","distance":2},{"word":"file","distance":2},{"word":"sample","distance":2},{"word":"table","distance":2}]}
 ```
 
-Custom words can change the ranking. Empty dictionaries return an empty list.
+Empty dictionaries return an empty list.
 
 ### Online definitions
 
@@ -257,34 +243,14 @@ A no-definition response is 404:
 {"word":"exampleword","code":"not_found","error":"No definition found online for this word."}
 ```
 
-### Add a custom word (backend only)
-
-`POST /api/words`, `Content-Type: application/json`, body `{"word":"codex"}`:
-
-```json
-{"word":"codex","added":true}
-```
-
-New words return 201; duplicates return 200 with `added:false`. There is no
-corresponding website form. To deliberately add a word from PowerShell:
-
-```powershell
-Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:5000/api/words' -ContentType 'application/json' -Body '{"word":"codex"}'
-```
-
-This modifies your local custom file. The automated tests use temporary files instead.
-
 ## Errors and troubleshooting
 
 Errors contain an `error` message. Provider errors also include `code` and `word`.
 
 | Status | Meaning |
 | --- | --- |
-| 400 | Invalid word, missing field, invalid JSON object or malformed JSON |
+| 400 | Invalid or missing word/prefix query parameter |
 | 404 | No online definition found (or unknown route) |
-| 413 | Request body exceeds 4 KiB |
-| 415 | POST body is not JSON |
-| 500 | Custom-word file could not be saved |
 | 502 | Provider HTTP failure, redirect, malformed/oversized/incomplete response |
 | 503 | Provider rate limit or connection failure |
 | 504 | Provider lookup timeout |
@@ -303,11 +269,9 @@ prove a spelling is wrong.
 - **PowerShell activation policy error:** use the explicit `.venv` Python commands;
   activation is unnecessary.
 - **Missing/invalid dictionary:** restore `dictionary.txt`; correct the indicated
-  line to one ASCII word, or repair your local custom file, then restart.
+  line to one ASCII word, then restart.
 - **Online meanings fail:** check internet/DNS access and try later for rate limits
   or provider outages. Local spelling checks do not require provider availability.
-- **Cannot save a backend custom word:** ensure the project directory/custom file
-  is writable. A failed save does not update the in-memory dictionary.
 - **Old UI appears:** restart Flask and hard-refresh the browser (Ctrl+F5).
 
 ## Verification
@@ -319,10 +283,10 @@ Run the offline automated suite:
 ```
 
 It covers Trie exact/prefix distinctions and duplicate insertion, known edit
-distances, ranking ties and limits, Flask validation, persistence across restarts,
-failed writes, provider errors/schema handling and cache behavior. Provider
+distances, ranking ties and limits, Flask validation, dictionary loading,
+provider errors/schema handling and cache behavior. Provider
 responses are mocked; these tests do not verify live provider availability.
-No pytest or extra test dependency is required. They do not modify real saved words.
+No pytest or extra test dependency is required. API tests use temporary dictionaries.
 
 Optional JavaScript syntax check (requires Node.js; not needed to run the app):
 
@@ -338,7 +302,7 @@ Separate live provider check (requires internet):
 
 For manual browser verification, type `app`, check `aple`, select its `apple`
 suggestion, confirm a local match and online definition, and check that the footer
-follows the meaning panel without the removed custom-word form. Inspect browser
+follows the meaning panel. Inspect browser
 console errors separately. Automated Python tests do not replace browser testing.
 
 ## Limitations and future improvements
@@ -347,10 +311,9 @@ console errors separately. Automated Python tests do not replace browser testing
   checking, grammar checking, stemming or multilingual support.
 - Full dictionary scans and sorting for suggestions; no measured performance
   claims. Trie-based DP pruning or a bounded ranking heap could improve scale.
-- No authentication, user-specific dictionaries or deletion UI. The write endpoint
-  is intended for a trusted local demonstration, not an unprotected public service.
-- File persistence and cache are per local installation/process. Public multi-worker
-  hosting would need durable coordinated storage and suitable cache/rate-limit design.
+- The word list is loaded at startup; changing it requires restarting the app.
+- The definition cache is per process. Public hosting would need appropriate
+  access controls and a suitable cache/rate-limit design.
 - Online definitions depend on third-party availability and coverage. Potential
   improvements include request coalescing, richer accessibility/browser tests,
   and a broader explicitly licensed local word list.
@@ -362,5 +325,5 @@ repository to GitHub publishes source code; it does **not** deploy Flask or crea
 a live public application URL. GitHub Pages cannot run this Python backend.
 
 Public deployment is a separate task requiring a Python-capable hosting service,
-a production WSGI server, HTTPS, persistent storage, and protections appropriate
+a production WSGI server, HTTPS, and protections appropriate
 for the exposed API. No public deployment URL is provided by this project.

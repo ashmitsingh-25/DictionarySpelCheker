@@ -2,7 +2,6 @@
 
 from pathlib import Path
 import re
-from threading import Lock
 
 from flask import Flask, jsonify, render_template, request
 from werkzeug.exceptions import HTTPException
@@ -23,15 +22,11 @@ def normalize_word(value):
 
 
 class Dictionary:
-    def __init__(self, dictionary_path, custom_path):
+    def __init__(self, dictionary_path):
         self.trie = Trie()
         self.words = set()
-        self.custom_path = Path(custom_path)
-        self.lock = Lock()
         # A missing main dictionary is a configuration error, not an empty dictionary.
         self.load(Path(dictionary_path))
-        if self.custom_path.exists():
-            self.load(self.custom_path)
 
     def load(self, path):
         for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
@@ -44,32 +39,15 @@ class Dictionary:
             self.trie.insert(word)
             self.words.add(word)
 
-    def add(self, word):
-        # Protect duplicate checks, file writes, and in-memory updates across requests.
-        with self.lock:
-            if word in self.words:
-                return False
-            # Write first: a failed save must not claim to have added the word.
-            with self.custom_path.open("a+", encoding="utf-8") as file:
-                file.seek(0)
-                contents = file.read()
-                separator = "\n" if contents and not contents.endswith("\n") else ""
-                file.write(separator + word + "\n")
-            self.trie.insert(word)
-            self.words.add(word)
-            return True
-
 
 def create_app(test_config=None):
     app = Flask(__name__)
     app.config.from_mapping(
         DICTIONARY_PATH=BASE_DIR / "dictionary.txt",
-        CUSTOM_WORDS_PATH=BASE_DIR / "custom_words.txt",
-        MAX_CONTENT_LENGTH=4096,
     )
     if test_config:
         app.config.update(test_config)
-    dictionary = Dictionary(app.config["DICTIONARY_PATH"], app.config["CUSTOM_WORDS_PATH"])
+    dictionary = Dictionary(app.config["DICTIONARY_PATH"])
     app.extensions["dictionary"] = dictionary
     definitions = DictionaryService()
     app.extensions["definitions"] = definitions
@@ -89,15 +67,13 @@ def create_app(test_config=None):
     @app.get("/api/search")
     def search():
         word = normalize_word(request.args.get("word"))
-        with dictionary.lock:
-            found = dictionary.trie.search(word)
+        found = dictionary.trie.search(word)
         return jsonify(word=word, found=found)
 
     @app.get("/api/autocomplete")
     def autocomplete():
         prefix = normalize_word(request.args.get("prefix"))
-        with dictionary.lock:
-            words = dictionary.trie.autocomplete(prefix)
+        words = dictionary.trie.autocomplete(prefix)
         return jsonify(prefix=prefix, words=words)
 
     @app.get("/api/definitions")
@@ -111,22 +87,7 @@ def create_app(test_config=None):
     @app.get("/api/suggestions")
     def suggestions():
         word = normalize_word(request.args.get("word"))
-        with dictionary.lock:
-            words = dictionary.words.copy()
-        return jsonify(word=word, suggestions=suggest_words(word, words))
-
-    @app.post("/api/words")
-    def add_word():
-        data = request.get_json()
-        if not isinstance(data, dict):
-            raise ValueError("Send a JSON object containing a word field.")
-        word = normalize_word(data.get("word"))
-        try:
-            added = dictionary.add(word)
-        except OSError:
-            app.logger.exception("Could not save custom word")
-            return jsonify(error="Could not save the word. Check file permissions and try again."), 500
-        return jsonify(word=word, added=added), 201 if added else 200
+        return jsonify(word=word, suggestions=suggest_words(word, dictionary.words))
 
     return app
 
