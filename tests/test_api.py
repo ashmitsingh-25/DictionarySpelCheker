@@ -93,6 +93,18 @@ class ApiTests(unittest.TestCase):
                 self.assertEqual(result.status_code, 400)
             lookup.assert_not_called()
 
+    def test_provider_error_metadata_preserves_local_recognition(self):
+        self.app.extensions['dictionary'].trie.insert('brei')
+        error = DefinitionError('server_error', 'Provider returned HTTP 502.', 502, 502)
+        error.lookup_id = 'abc123'
+        with patch.object(self.app.extensions['definitions'], 'lookup', side_effect=error):
+            response = self.client.get('/api/definitions?word=brei')
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.json['code'], 'server_error')
+        self.assertEqual(response.json['upstream_status'], 502)
+        self.assertEqual(response.json['lookup_id'], 'abc123')
+        self.assertTrue(self.client.get('/api/search?word=brei').json['found'])
+
 
 if __name__ == '__main__':
     unittest.main()

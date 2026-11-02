@@ -282,7 +282,10 @@ no dictionary mutation endpoints. `/` serves the template; `/static/` serves ass
 
 ## Errors and troubleshooting
 
-Errors contain `error`; provider errors also contain `word` and `code`.
+Errors contain `error`; provider errors also contain `word`, `code`,
+`upstream_status` (null if no HTTP response was received), and `lookup_id` to
+correlate the failure with server diagnostics. The app's HTTP response status can
+differ from the upstream status: an upstream 429 becomes a local 503, for example.
 
 | Status | Meaning |
 | --- | --- |
@@ -291,6 +294,49 @@ Errors contain `error`; provider errors also contain `word` and `code`.
 | 502 | Provider HTTP failure, redirect, malformed/oversized/incomplete response |
 | 503 | Provider rate limit or connection failure |
 | 504 | Provider timeout |
+
+Provider `code` values distinguish `not_found`, `rate_limited`, `timeout`,
+`connection_error`, `tls_error`, `redirect`, `server_error`, `provider_error`
+(other rejected HTTP requests) and `malformed_response`. Only an upstream 404 or
+a valid empty definition response is treated as no definition found. A 5xx is
+not evidence that the word lacks a meaning. Redirects remain blocked, TLS
+verification remains enabled, and returned entries for a different word are rejected.
+
+When a locally recognised word cannot obtain a meaning, the meaning panel displays
+**“Word recognised; definition unavailable from the online dictionary.”** A separate
+line explains the specific failure. Spelling remains recognised. Every failed
+lookup offers **Search Wiktionary for “[the exact word]” (external)**, opening a
+URL-encoded external search in a new tab only when clicked. This is an investigation
+link, not a fetched or verified definition, and never substitutes a similar word.
+
+### Live diagnosis and safe logging
+
+On 2026-11-02, live checks returned upstream **200 for `apple`**, **200 for `brief`**,
+and **502 for `brei`**. The 502 body's allowlisted classification was
+`origin_bad_gateway`; the provider reported an invalid/incomplete origin response.
+The updated Flask endpoint reproduced these outcomes, with three displayed
+definitions for each successful word. A diagnostic request for `brei` using the
+default Python User-Agent returned 403 instead, so changing that header was not a
+fix. The application's existing User-Agent is retained. No definition for `brei`
+was obtained, and this app cannot repair the external origin server.
+A later browser request for `brei` timed out; the UI kept its recognised spelling,
+displayed the timeout reason and exact-word Wiktionary link. `brief` subsequently
+displayed its meaning normally. These are observed outcomes, not permanent provider statuses.
+
+Each uncached provider attempt emits a `definition_lookup` server-log event with
+a random lookup ID, actual upstream HTTP status, outcome and elapsed milliseconds.
+Failures include a fixed safe detail code (for example `origin_bad_gateway`,
+`redirect_blocked` or `tls_failure`). The diagnostic messages omit searched words,
+raw response bodies, redirect destinations, headers, cookies, credentials, provider
+request IDs and raw exception text. Only explicitly allowlisted body classifications
+are retained; error bodies are read with a 4 KiB cap. Existing hosting/access logs
+are separate and may include request URLs, so apply appropriate retention controls.
+
+Cache hits do not emit upstream-attempt events, because no network request occurs.
+Failed lookups are not cached; the lookup button retries the same word on demand.
+There is no automatic retry loop, TLS bypass, silent word replacement or fabricated
+meaning. Inspect the local terminal or Vercel runtime logs using `lookup_id` when
+diagnosing a failure. Current live results can differ from the recorded checks.
 
 - Localhost unavailable: start Flask, keep its terminal open, and use HTTP rather
   than HTTPS. Check startup errors; allow time for the full Trie to load.
@@ -319,6 +365,7 @@ Optional JavaScript syntax check (Node.js is not required to run the application
 
 ```powershell
 node --check static/script.js
+node --test tests/test_frontend.cjs
 ```
 
 Separate live meaning check (requires internet):
@@ -331,12 +378,22 @@ In a browser, type `photo`, submit `dictionry`, click `dictionary`, and check bo
 recognition and meanings. Submit `zzzzzzzzzz` for distant labels. Python unit tests
 do not replace browser interaction tests or deployed performance verification.
 
-Verification on 2026-11-02: all 31 Python tests and the JavaScript syntax check
+Verification of the vocabulary upgrade on 2026-11-02: all 31 Python tests and the JavaScript syntax check
 passed. Browser checks covered broad-prefix autocomplete, suggestion selection
 followed by a live definition, distant-match labels, and a recognised word
 remaining recognised after a live no-definition response. Provider unit tests
 use mocks; these browser/live checks are separate. Vercel deployment and load
 testing were not performed.
+
+The definition-diagnostics regression suite adds mocked HTTP 502/404 distinctions,
+safe logging, TLS failures, mismatched-word rejection and local recognition after
+provider failure. `tests/test_frontend.cjs` uses Node's built-in test runner with
+mocked DOM/fetch objects to verify exact-word fallback links, unchanged recognised
+status, and protection against stale failed responses. Node remains optional for
+running the app and Python tests; no npm packages are needed for these checks.
+For this fix, all 37 Python tests and both mocked frontend tests passed, along
+with JavaScript syntax checking. Live API and browser outcomes are recorded
+separately above; the deployed Vercel instance was not tested.
 
 ## Vercel, GitHub and local use
 

@@ -8,6 +8,7 @@ const onlineLookup = document.querySelector('#online-lookup');
 let definitionVersion = 0;
 let definitionController;
 let checkedWord = '';
+let checkedRecognised = false;
 let inputVersion = 0;
 let checkVersion = 0;
 let debounceTimer;
@@ -32,6 +33,7 @@ function resetDefinitions() {
   ++definitionVersion;
   definitionController?.abort();
   checkedWord = '';
+  checkedRecognised = false;
   onlineLookup.hidden = true;
   onlineLookup.disabled = false;
   definitionContent.replaceChildren();
@@ -105,7 +107,13 @@ async function loadDefinition(word, searchVersion) {
     message(definitionStatus, 'Online meaning');
   } catch (error) {
     if (version !== definitionVersion || searchVersion !== checkVersion || error.name === 'AbortError') return;
-    message(definitionStatus, error.message, 'error');
+    message(definitionStatus, checkedRecognised
+      ? 'Word recognised; definition unavailable from the online dictionary.'
+      : 'Definition unavailable from the online dictionary.');
+    appendText(definitionContent, 'p', error.message, 'hint');
+    const fallback = appendText(definitionContent, 'p', '');
+    attributionLink(fallback, `Search Wiktionary for “${word}” (external)`,
+      `https://en.wiktionary.org/w/index.php?search=${encodeURIComponent(word)}`);
     onlineLookup.hidden = false;
   } finally {
     if (version === definitionVersion && searchVersion === checkVersion) onlineLookup.disabled = false;
@@ -183,6 +191,7 @@ document.querySelector('#search-form').addEventListener('submit', async event =>
     const result = await api(`/api/search?word=${query}`);
     if (version !== checkVersion) return;
     checkedWord = result.word;
+    checkedRecognised = result.found;
     if (result.found) {
       message(status, `“${result.word}”: Spelling recognised`, 'success');
       showWords(suggestions, [], 'You have an exact match. No correction needed.');

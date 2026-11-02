@@ -1,6 +1,7 @@
 """Flask API for the Dictionary with Spell Checker mini project."""
 
 from pathlib import Path
+import logging
 import re
 
 from flask import Flask, jsonify, render_template, request
@@ -48,7 +49,8 @@ def create_app(test_config=None):
         app.config.update(test_config)
     dictionary = Dictionary(app.config["DICTIONARY_PATH"])
     app.extensions["dictionary"] = dictionary
-    definitions = DictionaryService()
+    app.logger.setLevel(logging.INFO)
+    definitions = DictionaryService(logger=app.logger)
     app.extensions["definitions"] = definitions
 
     @app.errorhandler(ValueError)
@@ -81,7 +83,8 @@ def create_app(test_config=None):
         try:
             return jsonify(definitions.lookup(word))
         except DefinitionError as error:
-            return jsonify(word=word, error=str(error), code=error.code), error.status
+            return jsonify(word=word, error=str(error), code=error.code,
+                           upstream_status=error.upstream_status, lookup_id=error.lookup_id), error.status
 
     @app.get("/api/suggestions")
     def suggestions():
