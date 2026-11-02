@@ -40,6 +40,7 @@ h3 span { font-size: 9px; color: #5e725f; background: #edf2e9; padding: 4px 6px;
 .chips { display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; min-height: 55px; }
 .chip { color: #31573b; background: #eff5ea; padding: 8px 12px; font-weight: 500; white-space: normal; overflow-wrap: anywhere; }
 .chip:hover { background: #dcebd4; }
+.chip.distant { background: #f5f0e5; color: #735a2b; }
 .chip small { margin-left: 8px; color: #5c6c55; }
 .empty { font-size: 13px; color: #6c766b; }
 .secondary { background: #e3edda; color: #2c583b; }

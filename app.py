@@ -24,20 +24,19 @@ def normalize_word(value):
 class Dictionary:
     def __init__(self, dictionary_path):
         self.trie = Trie()
-        self.words = set()
         # A missing main dictionary is a configuration error, not an empty dictionary.
         self.load(Path(dictionary_path))
 
     def load(self, path):
-        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-            if not line.strip():
-                continue
-            try:
-                word = normalize_word(line)
-            except ValueError as error:
-                raise ValueError(f"Invalid word in {path.name}, line {line_number}: {error}") from error
-            self.trie.insert(word)
-            self.words.add(word)
+        with path.open(encoding="utf-8") as lines:
+            for line_number, line in enumerate(lines, 1):
+                if not line.strip():
+                    continue
+                try:
+                    word = normalize_word(line)
+                except ValueError as error:
+                    raise ValueError(f"Invalid word in {path.name}, line {line_number}: {error}") from error
+                self.trie.insert(word)
 
 
 def create_app(test_config=None):
@@ -87,7 +86,7 @@ def create_app(test_config=None):
     @app.get("/api/suggestions")
     def suggestions():
         word = normalize_word(request.args.get("word"))
-        return jsonify(word=word, suggestions=suggest_words(word, dictionary.words))
+        return jsonify(word=word, suggestions=suggest_words(word, dictionary.trie))
 
     return app
 

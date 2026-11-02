@@ -133,6 +133,10 @@ function showWords(container, items, emptyText) {
       const distance = document.createElement('small');
       distance.textContent = `${item.distance} edit${item.distance === 1 ? '' : 's'}`;
       button.append(distance);
+      if (item.distance > 2) {
+        button.classList.add('distant');
+        button.append(document.createTextNode(' · distant match'));
+      }
     }
     button.addEventListener('click', () => {
       wordInput.value = item.word;
@@ -173,25 +177,28 @@ document.querySelector('#search-form').addEventListener('submit', async event =>
     return;
   }
   message(status, 'Checking the dictionary…');
+  showWords(suggestions, [], 'Finding the nearest dictionary words…');
   try {
     const query = encodeURIComponent(word);
     const result = await api(`/api/search?word=${query}`);
     if (version !== checkVersion) return;
     checkedWord = result.word;
     if (result.found) {
-      message(status, `“${result.word}” is in your dictionary. Spelling looks good!`, 'success');
+      message(status, `“${result.word}”: Spelling recognised`, 'success');
       showWords(suggestions, [], 'You have an exact match. No correction needed.');
       loadDefinition(result.word, version);
     } else {
-      message(status, `“${result.word}”: Not found in local dictionary. Finding close matches…`);
-      message(definitionStatus, 'The local dictionary is limited. This word may still be valid; look up its meaning online.');
+      message(status, `“${result.word}”: Word not recognised. Did you mean…?`);
+      message(definitionStatus, 'You can also look up this word’s meaning online.');
       onlineLookup.hidden = false;
       const data = await api(`/api/suggestions?word=${query}`);
       if (version !== checkVersion) return;
-      message(status, `“${result.word}”: Not found in local dictionary. Try a close match or look up its meaning online.`);
       showWords(suggestions, data.suggestions, 'No local suggestions are available.');
     }
   } catch (error) {
-    if (version === checkVersion) message(status, `Could not check spelling: ${error.message}`, 'error');
+    if (version === checkVersion) {
+      if (checkedWord) showWords(suggestions, [], `Suggestions unavailable: ${error.message}`);
+      else message(status, `Could not check spelling: ${error.message}`, 'error');
+    }
   }
 });

@@ -1,39 +1,92 @@
 # Dictionary with Spell Checker
 
-An Advanced Data Structures mini project with a manually implemented **Trie** for
-local word lookup and prefix autocomplete, and **Levenshtein edit distance** for
-spelling suggestions. A Flask backend separately fetches online meanings from
-Free Dictionary API. The responsive Wordwise interface uses plain HTML, CSS and JavaScript.
+A Flask spell checker with **370,105 bundled English words**, a manually implemented
+Trie, and exact Levenshtein nearest-neighbour search. Wordwise keeps local spelling
+recognition separate from online meanings and preserves a responsive HTML/CSS interface.
 
-## Features
+## Features and behaviour
 
-- Exact local word lookup, with lowercase normalization.
-- Alphabetical prefix autocomplete, limited to 10 results.
-- Up to five nearest local words ranked by edit distance, then alphabetically.
-- Clickable suggestions that check the selected word and fetch its meaning.
-- Automatic online meanings for local matches: up to three definitions, part of
-  speech, example sentences and phonetic text when supplied.
-- A **Look up meaning online** option for words missing from the local dictionary.
-  Missing local words are not automatically declared misspelled.
-- Provider source and license attribution, safe text rendering, and protection
-  against older requests overwriting a newer search.
-- Independent local results: spelling and autocomplete still work without internet.
+- Submit a word: trim/lowercase it, validate 1–50 ASCII letters, then search the Trie.
+- A local match displays **“Spelling recognised”** and automatically loads meanings.
+- A missing word displays **“Word not recognised. Did you mean…?”** with up to five
+  globally nearest words, ordered by edit distance and then alphabetically.
+- Click any suggestion to check that word and fetch its meaning.
+- Prefix autocomplete uses the Trie and returns up to 10 alphabetical matches.
+- Results over two edits are explicitly labelled **distant match**. Two edits is
+  only a UI label boundary, never a search cutoff. Even nearby matches are not
+  guaranteed corrections; this project has no context or frequency ranking.
+- Definition errors stay in the meaning panel and do not change recognised spelling.
+- Local lookup and corrections work offline. Only online definitions require internet.
+- No custom-word addition, file writing, account system or sentence checking.
 
-## Technology stack
+## Vocabulary: source, license and limitations
 
-Python 3.9+, Flask 3.1.3, Jinja templates, HTML5, CSS and browser JavaScript with
-`fetch`/JSON. Online requests use Python's standard-library `urllib`; caching uses
-`OrderedDict`, `monotonic` and a lock. Tests use `unittest`, `unittest.mock` and
-Flask's test client. No separate test packages, database, API key, Node build step,
-external fonts or frontend framework are required.
+The bundled `dictionary.txt` is the entire alphabetic word list from
+[dwyl/english-words](https://github.com/dwyl/english-words), pinned to revision
+`20f5cc9b3f0ccc8ce45d814c532b7c2031bba31c`. There are **370,105 unique entries**,
+with lengths from 1 to 31. Normalization trims/lowercases, deduplicates, sorts, and
+writes LF line endings. All upstream alphabetic entries survived the 1–50 ASCII
+letter validation; there is no frequency cutoff or manually selected subset.
 
-`requirements.txt` lists the direct runtime dependency; pip installs Flask's
-transitive dependencies. The application requires no environment variables, so
-there is no `.env.example` or dotenv dependency.
+The source includes everyday, advanced, uncommon, academic and technical words,
+variant spellings, and available inflected forms. Examples include `epistemology`,
+`syzygy`, `thermodynamics`, `endocrinology`, `running`, `ran`, and `universities`.
+No additional inflections are generated.
 
-## Windows setup and commands
+This is **not every English word** and not an editorial guarantee of correctness.
+Names, new terminology, accented words, apostrophes and hyphenated compounds may
+be missing. Rare/archaic words, abbreviations, offensive terms and questionable
+entries may be present. Alphabetical tie-breaking can put an obscure word ahead
+of the intended everyday correction. For example, `aple` has several distance-one
+matches alphabetically before `apple`; exact ranking deliberately does not hide them.
 
-In PowerShell, clone the repository and enter the folder:
+The upstream repository provides an Unlicense/public-domain dedication, preserved
+verbatim in [data/english-words-LICENSE.md](data/english-words-LICENSE.md).
+Its [original README](data/english-words-README.md) attributes historical data to
+Infochimps and states that copyright remains with that source. We retain that
+provenance caveat rather than asserting independently cleared rights to every
+entry. [data/SOURCES.md](data/SOURCES.md) records the revision, transformation,
+checksums and license review. This data license does not assign a license to the
+project's code. Online definition content has separate provider attribution.
+
+The dictionary is committed with the application. Each `create_app()` call loads
+it once into its own Trie; requests reuse that Trie. No dictionary download happens
+at startup or per request. Loading streams UTF-8 lines, ignores blanks, validates
+entries and deduplicates through the Trie. A missing or invalid file fails startup
+with a clear error. File paths resolve relative to `app.py`. Editing the bundled
+list requires a restart. The old ignored local custom file is never read or written.
+
+## Technology and project structure
+
+Python 3.9+, Flask 3.1.3, Jinja templates, HTML5, CSS and vanilla JavaScript.
+`urllib`, `json`, `unittest` and the benchmark memory probes use the Python standard
+library. Flask is the only direct dependency; tests need no additional packages.
+No API key, environment variables, Node build step or database is required.
+
+```text
+app.py                         Flask factory, top-level app, validation and JSON routes
+algorithms.py                  Manual Trie, DP distance and exact pruned correction search
+dictionary_service.py          Meaning provider, errors, attribution and expiring cache
+dictionary.txt                 370,105 bundled words
+data/SOURCES.md                Source revision, checksums and provenance caveat
+data/english-words-LICENSE.md  Verbatim upstream license
+data/english-words-README.md   Verbatim upstream provenance
+data/benchmark-windows.json    Actual local benchmark results
+scripts/benchmark.py           Reproducible startup/memory/suggestion measurements
+templates/index.html           Search, suggestions, meaning panel and footer
+static/style.css               Responsive design and distant-match styling
+static/script.js               Fetch requests, safe rendering and stale-response guards
+tests/test_algorithms.py       DP/Trie tests and optimized-vs-brute-force comparisons
+tests/test_api.py              Flask routes, validation and provider isolation
+tests/test_dictionary_data.py  Bundled snapshot integrity and startup-only loading
+tests/test_dictionary_service.py  Mocked provider and cache tests
+requirements.txt               Flask dependency
+.gitignore                     Local environments, caches, logs and private files
+```
+
+## Windows setup
+
+Run in PowerShell:
 
 ```powershell
 git clone https://github.com/ashmitsingh-25/DictionarySpelCheker.git
@@ -44,315 +97,274 @@ python -m venv .venv
 .\.venv\Scripts\python.exe app.py
 ```
 
-If using the existing project folder and `.venv`, skip cloning and environment
-creation. Run the install, test or start commands as needed. Activation is optional
-because each command selects the virtual environment's Python explicitly.
+For an existing checkout/virtual environment, skip cloning and environment creation.
+Open **http://127.0.0.1:5000/**. Keep the terminal open; Ctrl+C stops the server.
+Activation is optional because the commands explicitly select `.venv` Python.
+Try `photo` for autocomplete, `photosynthesis` for recognition, and `dictionry`
+for a correction. Click `dictionary` to see its meaning. Try `zzzzzzzzzz` to see
+distant matches rather than an empty result caused by a fixed distance cutoff.
 
-Open **http://127.0.0.1:5000/**, using HTTP, and keep the terminal open. Stop with
-**Ctrl+C**. Restart Flask after Python/template edits and refresh the browser after
-frontend edits. The default server has debug mode off and binds only to localhost.
-
-Try `app` for autocomplete, `apple` for a local match and meaning, and `aple` for
-suggestions. Click the `apple` suggestion to check it and display its definition.
-
-## Project structure
-
-```text
-DictionarySpelCheker/
-├── app.py                         # Flask routes, validation, dictionary loading
-├── algorithms.py                  # Manual Trie and Levenshtein implementation
-├── dictionary_service.py          # Online provider, response parsing and cache
-├── dictionary.txt                 # Bundled demonstration word list
-├── templates/
-│   └── index.html                 # Search, autocomplete, suggestions, meanings and footer
-├── static/
-│   ├── style.css                  # Responsive styling
-│   └── script.js                  # Fetch calls, result rendering and request versioning
-├── tests/
-│   ├── test_algorithms.py
-│   ├── test_api.py
-│   └── test_dictionary_service.py
-├── requirements.txt
-├── .gitignore
-└── README.md
-```
-
-`.venv/` and Python caches are local files excluded from Git.
-
-## Algorithms and complexity
+## Algorithms and exactness
 
 ### Trie
 
-Each node has a character-to-child map and an `is_end_of_word` flag. Insertion
-creates missing nodes along the word. Exact search follows those nodes and checks
-the end flag: a prefix can exist without being a complete dictionary word. This
-is a manual Trie; Python dictionaries only provide the child maps.
+Each node stores a child map and an end-of-word flag. Insertion creates character
+nodes; exact search must reach a marked terminal node, not merely a prefix.
+Autocomplete finds the prefix node, recursively visits sorted children and stops
+after 10 results. `__slots__` avoids per-node attribute dictionaries and leaf nodes
+share an immutable empty child map to reduce memory.
 
-Autocomplete walks to the prefix node, then recursively visits sorted children.
-It returns complete words in alphabetical order and stops after 10 matches. A
-prefix that is itself a word is included.
+Each node also stores the minimum/maximum total word lengths among its terminals
+and a bit mask of characters that can occur after that prefix. Insertion updates
+these summaries. They accelerate pruning; they never replace Trie recognition.
 
-### Levenshtein distance and ranking
+### Levenshtein DP rows and branch-and-bound
 
-Dynamic programming computes the minimum number of insertions, deletions and
-substitutions. Each cell takes the minimum of left + 1 (insert), above + 1
-(delete), and diagonal + a character mismatch cost (substitute). Only the current
-and previous rows are stored. Adjacent transposition is two edits, not one.
+The independent `levenshtein_distance` function implements insertion, deletion and
+substitution with two DP rows. Adjacent transposition is two edits. It supplies
+initial candidate distances and the brute-force test reference.
 
-Suggestions scan every unique local word, compute its distance, sort
-`(distance, word)` tuples and return at most five. There is no distance cutoff;
-these are the nearest available words, even when none is a plausible correction.
-An exact match has distance zero, though the UI hides corrections for local matches.
+Correction search traverses Trie edges and calculates a DP row for each visited
+prefix. `row[j]` is the distance between that prefix and the first j query letters.
+A child's row uses insertion (left + 1), deletion (above + 1) and substitution
+(diagonal + mismatch). Shared prefixes reuse the previous row.
 
-Let L be maximum word length, P prefix length, W number of unique words, S total
-stored characters, V visited autocomplete nodes, K returned words, Q query length,
-and M/N the lengths of two strings passed to edit distance. Hash-map access is
-expected O(1); the alphabet is fixed at 26 letters.
+The search retains only the best five `(distance, word)` pairs. Initial candidates
+come from autocomplete near the longest matching prefix; their distances provide
+an upper bound, not a heuristic exclusion. At every subtree it computes an
+admissible lower bound from:
 
-| Implemented operation | Time | Additional space |
+1. The DP cost at each query-prefix position.
+2. The minimum length adjustment required for any terminal in the subtree.
+3. The number of remaining query letters absent from all possible descendant letters.
+
+For each DP cell, the remaining cost is at least the **maximum** of bounds 2 and 3;
+adding that to the cell value and taking the minimum across cells bounds the whole
+subtree. A branch is discarded only if it cannot improve the current worst retained
+pair. Equal-distance branches remain eligible unless their prefix already proves
+that all descendants are alphabetically too late. Thus all candidates that could
+win a final-distance tie are considered. Siblings are explored by bound then prefix.
+
+This is exact top-k branch-and-bound, not a fixed distance-2 search. It returns five
+results whenever the dictionary has at least five words, even for large mistakes.
+There is no full per-word edit-distance scan or complete dictionary sort per request:
+only five candidates and at most 26 siblings are sorted. Exhaustive small-alphabet
+and seeded randomized tests compare the full result against brute force, including
+large distances, insertion-order changes, empty queries, small dictionaries and ties.
+
+### Complexity
+
+Let Q be query length, L maximum dictionary word length, P prefix length, S total
+stored characters, N Trie nodes, V nodes visited in a request, A alphabet size (26),
+K returned words (at most 5 for corrections/10 for autocomplete), R total nodes
+visited by autocomplete while seeding corrections, and C the number
+of cached character-mask suffix arrays (at most 1,024 per correction request).
+Hash-map operations are expected O(1).
+
+| Operation | Time | Auxiliary space / storage |
 | --- | --- | --- |
-| Trie insert a length-L word | O(L) expected | At most O(L) new nodes |
-| Trie exact search | O(L) expected | O(1) |
-| Trie autocomplete | O(P + VL) upper bound | O(L² + KL), including constructed strings and results |
-| Levenshtein distance | O((M+1)(N+1)); O(MN) for nonempty strings | O(N+1) |
-| Suggestions over W words | O(WQL + WL log W) worst-case bound for nonempty words | O(W + L), excluding stored input words |
-| Load dictionary.txt | O(S) expected | O(S) for loaded data, Trie and word set |
+| Insert length-L word | O(L) | O(L) new nodes and temporary suffix masks |
+| Exact search | O(Q) | O(1) |
+| Load dictionary | O(S) expected | O(N) Trie storage plus O(L) streaming/insertion workspace |
+| Prefix autocomplete | O(P + VL) upper bound | O(L² + KL), including copied path strings |
+| Two-string distance (M and Q) | O((M+1)(Q+1)) | O(Q+1) |
+| Pruned top-k suggestions | O(V(Q + L) + Q² + RL + KQL) upper bound for fixed A/K | O(AL(Q+L) + CQ + KL) |
 
-Autocomplete constructs `word + character` at each visited edge; copying these
-strings costs up to O(L) per visit. Recursive frames retain partial strings,
-which can occupy O(L²) along a path, beyond the O(L) stack frames. Sorted child
-lists have bounded size. Suggestions sort all candidates, not just five, and
-alphabetical comparisons on distance ties can cost O(L). Their word references,
-ranking tuples and candidate deduplication require O(W) space. The Trie and
-word set together occupy O(S) storage.
+For fixed A and K, the dominant correction work is DP over visited nodes, O(VQ),
+plus path-string construction/comparisons. Q² + RL accounts for repeated
+prefix-seed autocomplete calls and KQL for seed distances. Pending sibling rows/path strings are retained along DFS depth;
+the bounded per-query suffix-array cache costs O(CQ). Autocomplete's recursion
+retains copied partial strings, hence its O(L²) path space. Pruning is data-dependent:
+in the worst case V can approach N. No constant-time or uniformly fast correction
+guarantee is made. The implementation never fully sorts W dictionary candidates.
 
-## Local dictionary
+## Local measurements and Vercel limitations
 
-`dictionary.txt` contains 341 unique words assembled as a small demonstration
-list for this project. It was not imported from an external dictionary dataset;
-no upstream word-list source or license notice was supplied. No project license
-has been assigned. This list is not comprehensive or an authoritative spelling
-reference; valid English words, names and technical terms can be absent.
+Run a fresh-process benchmark (no network and no suggestion-result cache):
 
-At startup, `app.py` reads only `dictionary.txt` as UTF-8. It ignores blank lines,
-trims and lowercases words, validates 1–50 ASCII letters and deduplicates via the
-Trie/set. Invalid lines or a missing dictionary fail startup clearly. The file
-path is relative to `app.py`, not the terminal's working directory. Edit the list
-and restart to load changes. The application does not modify dictionary files;
-its local word collection is read-only after startup.
+```powershell
+.\.venv\Scripts\python.exe scripts/benchmark.py --output data/benchmark-windows.json
+```
 
-## Online meanings and attribution
+The committed [raw report](data/benchmark-windows.json) records three sequential
+runs per query, Python/CPU details, one cold module-import measurement, and process
+working-set memory from Windows. Cold import includes Flask import and building
+the module-level app/Trie, but excludes interpreter launch. Memory is process
+working set, not Python heap allocation or Vercel memory. Suggestion timings exclude
+HTTP/browser/network overhead and online definitions. No concurrency/load test was run.
 
-Provider: [Free Dictionary API](https://dictionaryapi.dev/).
+Measured on Windows / Python 3.14.3: cold import **2.630 s**;
+loaded working set **281.49 MiB**; peak through
+all queries **290.82 MiB**. Baseline before import:
+**20.93 MiB**. Three samples are not a percentile estimate.
+
+| Query | Median suggestion time (ms) | Nearest distance |
+| --- | ---: | ---: |
+| `aple` | 0.790 | 1 |
+| `dictionry` | 28.972 | 1 |
+| `accomodation` | 37.705 | 1 |
+| `photosyntheis` | 86.801 | 1 |
+| `zzzzzzzzzz` | 246.811 | 6 |
+| `qzxvbnmlkjhgfdsa` | 810.105 | 10 |
+| `abcdefghijklmno` | 538.223 | 9 |
+| `x` repeated 50 times | 555.987 | 47 |
+| `pneumonoultramicroscopicsilicovolcanoconiosis` | 505.413 | 27 |
+
+The initial threshold-repetition prototype took about 41 seconds for 50 repeated
+`x` characters in an exploratory run. The final implementation uses a tightening
+upper bound, letter/length bounds, slotted nodes, shared leaf maps, streamed loading
+and a bounded suffix cache; the table reports the final code's measurements.
+
+These local results **do not establish Vercel production suitability**. The sizable
+Trie is rebuilt on cold starts and duplicated per worker/instance. Adversarial
+queries can still visit many nodes, and concurrent CPU-heavy requests can increase
+latency. Verify cold starts, memory, request duration and load on the actual Vercel
+plan before relying on it. No Vercel build, deployed latency or production load
+measurement is claimed here. Potential further work includes a compact Trie
+representation, isolated search workers, shared result caching and request rate limits.
+
+## Online meanings and frontend communication
+
+[Free Dictionary API](https://dictionaryapi.dev/) supplies meanings using:
 
 ```text
 https://api.dictionaryapi.dev/api/v2/entries/en/{word}
 ```
 
-Flask validates and URL-encodes the word, contacts this fixed HTTPS URL and parses
-the JSON response. Redirects are disabled. Each request has a five-second socket
-timeout and a 1 MB response-size limit; the socket timeout is not a strict overall
-wall-clock deadline. The server needs internet access for uncached meanings.
-No provider API key is required.
+The browser calls same-origin Flask JSON endpoints via `fetch`. Typing debounces
+local autocomplete by 200 ms; autocomplete never calls the external provider.
+Submitting checks local spelling first. A recognised word starts a separate
+meaning request, leaving its spelling result visible. Missing words expose an
+explicit online-meaning button. Clicking a suggestion fills the input and submits
+it. Request counters ignore stale results; definition requests also use
+`AbortController`. Provider strings use `textContent`, not HTML interpretation.
 
-The app returns at most three definitions across entries, their available parts
-of speech/examples, available phonetic text, source URLs and license names/URLs.
-Missing optional fields are hidden, not invented. Source/license metadata supplied
-by the provider is retained and displayed, including nested attribution. Those
-licenses apply to the attributed provider content; they do not assign a license
-to this project's code or local word list. Audio is not played.
+Python validates and URL-encodes input, uses the fixed provider URL, disables
+redirects, enforces a five-second socket timeout and limits responses to 1 MB.
+The timeout is not a strict end-to-end deadline. Up to three definitions, available
+parts of speech, examples and phonetic text are displayed. Missing optional data
+is hidden. Source URLs and license metadata are retained, including nested
+attribution; only HTTP(S) attribution links are clickable. Audio is not played.
+Provider coverage is independent of the local list, and a missing meaning or
+provider failure never invalidates recognised spelling.
 
-Successful results are cached per process for one hour, bounded to 128 entries,
-with least-recently-used eviction. Expired entries are removed on access or after
-a successful lookup. Failures are not cached. Restarting clears the cache, and
-simultaneous cache misses may make duplicate upstream requests.
+Successful meanings have a per-process 128-entry LRU cache and one-hour TTL.
+Failures are not cached. Concurrent misses can issue duplicate requests; restart
+clears the cache. Internet is required for uncached meanings. Provider-content
+licenses do not assign a license to this project's code or local list.
 
-## Frontend and Flask flow
+## API examples
 
-1. Flask renders `templates/index.html` at `/` and serves CSS/JavaScript from `/static/`.
-2. Typing a valid prefix debounces a same-origin `/api/autocomplete` fetch by 200 ms.
-   This never triggers a provider lookup.
-3. Submitting a word calls `/api/search`. A local match starts a separate
-   `/api/definitions` request; local status remains visible while it loads.
-4. A missing local word triggers `/api/suggestions` and exposes the explicit
-   online-meaning button. Looking online does not add the word locally.
-5. Clicking a suggestion fills the input and submits a new check, which loads its
-   meaning if it is a local match.
+All four JSON endpoints are GET requests. Input is trimmed, lowercased and limited
+to 1–50 ASCII letters; punctuation, numbers, accents and internal spaces are rejected.
+Examples below refer to the pinned bundled list.
 
-All browser API calls use JSON. The browser contacts Flask, not the external
-provider directly. Request counters ignore stale results; definition requests
-also use `AbortController`. Provider text is rendered with `textContent`, and
-only HTTP(S) attribution URLs become clickable links.
-
-## API reference
-
-Words/prefixes are trimmed, lowercased and validated as 1–50 ASCII English letters.
-Internal spaces, punctuation, numbers, accents and missing/empty input are invalid.
-GET endpoints below return 200 on success; examples assume the bundled word list.
-
-### Exact local search
-
-`GET /api/search?word=apple`
+- `/api/search?word=photosynthesis` returns
+  `{"word":"photosynthesis","found":true}`.
+- `/api/autocomplete?prefix=photosynthe` returns `prefix` and an alphabetical `words`
+  array (up to 10). An unmatched prefix returns `[]`.
+- `/api/suggestions?word=dictionry` returns:
 
 ```json
-{"word":"apple","found":true}
+{"word":"dictionry","suggestions":[{"word":"dictionary","distance":1},{"word":"diction","distance":2},{"word":"dictional","distance":2},{"word":"dictions","distance":2},{"word":"fictionary","distance":2}]}
 ```
 
-`GET /api/search?word=aple` returns `{"word":"aple","found":false}`.
-
-### Prefix autocomplete
-
-`GET /api/autocomplete?prefix=app`
+- `/api/definitions?word=apple` returns `word`, `definitions`, `phonetics`,
+  `sourceUrls` and `licenses`. This is an **illustrative mocked shape**, not live wording:
 
 ```json
-{"prefix":"app","words":["apple","application","apply"]}
+{"word":"apple","definitions":[{"definition":"A fruit.","partOfSpeech":"noun","example":"I ate an apple."}],"phonetics":[],"sourceUrls":[],"licenses":[]}
 ```
 
-At most 10 words; an unmatched prefix returns an empty list.
-
-### Nearest spelling suggestions
-
-`GET /api/suggestions?word=aple`
-
-```json
-{"word":"aple","suggestions":[{"word":"apple","distance":1},{"word":"apply","distance":2},{"word":"file","distance":2},{"word":"sample","distance":2},{"word":"table","distance":2}]}
-```
-
-Empty dictionaries return an empty list.
-
-### Online definitions
-
-`GET /api/definitions?word=apple` works for valid nonlocal words too. The response
-has `word`, `definitions`, `phonetics`, `sourceUrls` and `licenses`. For example,
-the following is an **illustrative mocked response**, not a guarantee of live wording:
-
-```json
-{
-  "word": "apple",
-  "definitions": [{"definition": "A fruit.", "partOfSpeech": "noun", "example": "I ate an apple."}],
-  "phonetics": [],
-  "sourceUrls": [],
-  "licenses": []
-}
-```
-
-Real responses include attribution and phonetics when supplied by the provider.
-A no-definition response is 404:
-
-```json
-{"word":"exampleword","code":"not_found","error":"No definition found online for this word."}
-```
+Optional fields are omitted; real responses retain provider attribution. Definition
+lookup accepts nonlocal words too and never changes local vocabulary. There are
+no dictionary mutation endpoints. `/` serves the template; `/static/` serves assets.
 
 ## Errors and troubleshooting
 
-Errors contain an `error` message. Provider errors also include `code` and `word`.
+Errors contain `error`; provider errors also contain `word` and `code`.
 
 | Status | Meaning |
 | --- | --- |
-| 400 | Invalid or missing word/prefix query parameter |
-| 404 | No online definition found (or unknown route) |
+| 400 | Invalid/missing word or prefix |
+| 404 | No online definition, or unknown route |
 | 502 | Provider HTTP failure, redirect, malformed/oversized/incomplete response |
 | 503 | Provider rate limit or connection failure |
-| 504 | Provider lookup timeout |
+| 504 | Provider timeout |
 
-Provider failures appear in the meaning panel and leave local features usable.
-The online button allows another attempt. An unavailable definition does not
-prove a spelling is wrong.
+- Localhost unavailable: start Flask, keep its terminal open, and use HTTP rather
+  than HTTPS. Check startup errors; allow time for the full Trie to load.
+- Port occupied: stop the old process, or run
+  `.\.venv\Scripts\python.exe -m flask --app app:app run --port 5001` and open port 5001.
+- Missing Python/Flask: install Python with PATH support, recreate `.venv`, then
+  install `requirements.txt`. Explicit environment paths avoid activation-policy issues.
+- Missing/invalid dictionary: restore the bundled file and restart. Integrity tests
+  intentionally fail if the pinned snapshot changes without updated provenance.
+- Meaning unavailable: check internet/DNS, or retry later for provider errors.
+  The recognised spelling status remains visible.
+- Old interface: restart Flask and hard-refresh (Ctrl+F5).
 
-- **Localhost will not open:** start Flask, keep its terminal open, and visit
-  `http://127.0.0.1:5000/` rather than HTTPS. Check the terminal for startup errors.
-- **Port 5000 is occupied:** stop the other app or run
-  `.\.venv\Scripts\python.exe -m flask --app app:create_app run --port 5001`, then
-  open `http://127.0.0.1:5001/`.
-- **Python or Flask is missing:** install Python with PATH support if needed, reopen
-  PowerShell, create `.venv`, and install `requirements.txt` using the commands above.
-- **PowerShell activation policy error:** use the explicit `.venv` Python commands;
-  activation is unnecessary.
-- **Missing/invalid dictionary:** restore `dictionary.txt`; correct the indicated
-  line to one ASCII word, then restart.
-- **Online meanings fail:** check internet/DNS access and try later for rate limits
-  or provider outages. Local spelling checks do not require provider availability.
-- **Old UI appears:** restart Flask and hard-refresh the browser (Ctrl+F5).
-
-## Verification
-
-Run the offline automated suite:
+## Tests and verification
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-It covers Trie exact/prefix distinctions and duplicate insertion, known edit
-distances, ranking ties and limits, Flask validation, dictionary loading,
-provider errors/schema handling and cache behavior. Provider
-responses are mocked; these tests do not verify live provider availability.
-No pytest or extra test dependency is required. API tests use temporary dictionaries.
+Tests cover Trie search/autocomplete, exact nearest results against brute force,
+bundled data integrity/coverage, startup-only loading, API validation and failure
+isolation, mocked provider errors and cache behaviour. Temporary dictionary
+fixtures keep tests isolated. No extra test dependencies or live network are needed.
 
-Optional JavaScript syntax check (requires Node.js; not needed to run the app):
+Optional JavaScript syntax check (Node.js is not required to run the application):
 
 ```powershell
 node --check static/script.js
 ```
 
-Separate live provider check (requires internet):
+Separate live meaning check (requires internet):
 
 ```powershell
 .\.venv\Scripts\python.exe -c "from dictionary_service import DictionaryService; print(DictionaryService().lookup('apple'))"
 ```
 
-For manual browser verification, type `app`, check `aple`, select its `apple`
-suggestion, confirm a local match and online definition, and check that the footer
-follows the meaning panel. Inspect browser
-console errors separately. Automated Python tests do not replace browser testing.
+In a browser, type `photo`, submit `dictionry`, click `dictionary`, and check both
+recognition and meanings. Submit `zzzzzzzzzz` for distant labels. Python unit tests
+do not replace browser interaction tests or deployed performance verification.
 
-## Limitations and future improvements
+Verification on 2026-11-02: all 31 Python tests and the JavaScript syntax check
+passed. Browser checks covered broad-prefix autocomplete, suggestion selection
+followed by a live definition, distant-match labels, and a recognised word
+remaining recognised after a live no-definition response. Provider unit tests
+use mocks; these browser/live checks are separate. Vercel deployment and load
+testing were not performed.
 
-- Small English-only list; single words only, maximum 50 letters. No sentence
-  checking, grammar checking, stemming or multilingual support.
-- Full dictionary scans and sorting for suggestions; no measured performance
-  claims. Trie-based DP pruning or a bounded ranking heap could improve scale.
-- The word list is loaded at startup; changing it requires restarting the app.
-- The definition cache is per process. Public hosting would need appropriate
-  access controls and a suitable cache/rate-limit design.
-- Online definitions depend on third-party availability and coverage. Potential
-  improvements include request coalescing, richer accessibility/browser tests,
-  and a broader explicitly licensed local word list.
+## Vercel, GitHub and local use
 
-## Local use, GitHub and deployment
+The module-level **`app = create_app()`** is preserved for Vercel entrypoint
+recognition. Local startup calls `app.run(host='127.0.0.1', port=5000)` only in the
+main block. Importing the module builds the Trie but does not run a development server.
 
-Running `app.py` starts a development website on your computer. Pushing this
-repository to GitHub publishes source code; it does **not** deploy Flask or create
-a live public application URL. GitHub Pages cannot run this Python backend.
-
-Public deployment is a separate task requiring a Python-capable hosting service,
-a production WSGI server, HTTPS, and protections appropriate
-for the exposed API. No public deployment URL is provided by this project.
-
-### Vercel deployment
-
-Vercel discovers the module-level Flask instance named `app` in the root `app.py`.
-The project retains `create_app()` for tests and configuration, then exposes
-`app = create_app()` outside the `if __name__ == "__main__"` block. That block
-calls `app.run(...)` only for local development; importing the module does not
-start the development server. See [Vercel's Flask documentation](https://vercel.com/docs/frameworks/backend/flask).
-
-Import this GitHub repository into Vercel, or use its existing connected project.
-Set the Root Directory to the repository root containing `app.py` and
-`requirements.txt`, and use Vercel's Flask framework detection. Keep
-`dictionary.txt`, `templates/`, and `static/` in the deployment source. No API key
-or environment variable is required by this application.
-
-For `FLASK_ENTRYPOINT_NOT_FOUND`, deploy the latest commit containing the
-module-level instance. If a connected Git push does not trigger deployment,
-redeploy the latest commit from the Vercel dashboard. Check build/runtime logs,
-then verify `/`, `/api/search?word=apple`, and `/api/definitions?word=apple` on the
-deployment URL. A successful Git push alone does not confirm deployment success.
-
-Verify the entrypoint locally with:
+Use the repository root as Vercel's Root Directory and Flask framework detection.
+Keep `dictionary.txt`, `templates/`, and `static/` in the deployment source. No
+startup download or API key is required. See [Vercel's Flask documentation](https://vercel.com/docs/frameworks/backend/flask).
+For `FLASK_ENTRYPOINT_NOT_FOUND`, ensure the latest commit exposing `app` is deployed.
+If the Git integration does not trigger a deployment, redeploy in the dashboard.
+Then inspect logs and verify `/`, `/api/search?word=photosynthesis` and online meanings.
 
 ```powershell
 .\.venv\Scripts\python.exe -c "from app import app; from flask import Flask; assert isinstance(app, Flask); print('Flask entrypoint OK')"
 ```
 
-The definition cache is in memory and may be reset or differ between serverless
-instances. Online definitions still require outbound internet access.
+A GitHub push publishes code and may trigger a separately configured Vercel project;
+it is not proof of deployment success. No live deployment URL or Vercel performance
+claim is supplied. GitHub Pages cannot run the Flask backend. Local `app.py` uses
+the development server; public hosting requires production serving, HTTPS and
+appropriate access/rate controls. See the measured memory/cold-start limitations above.
+
+## Further limitations
+
+This is single-word, English ASCII spelling recognition, not grammar or semantic
+correction. The list's breadth trades precision for coverage. Suggestions follow
+edit distance/alphabetical order rather than frequency or contextual likelihood.
+Future improvements could add explicitly licensed frequency data, a better-audited
+vocabulary, Unicode/tokenisation support and broader browser/concurrency testing.

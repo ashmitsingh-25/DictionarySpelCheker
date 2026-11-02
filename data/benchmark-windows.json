@@ -1,0 +1,301 @@
+{
+  "python": "3.14.3",
+  "platform": "Windows",
+  "processor": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+  "word_count": 370105,
+  "cold_module_import_seconds": 2.6301,
+  "baseline_memory_mib": {
+    "working_set": 20.93,
+    "peak_working_set": 20.93
+  },
+  "loaded_memory_mib": {
+    "working_set": 281.49,
+    "peak_working_set": 281.49
+  },
+  "repeats_per_query": 3,
+  "queries": [
+    {
+      "query": "aple",
+      "milliseconds": [
+        0.929,
+        0.79,
+        0.781
+      ],
+      "median_ms": 0.79,
+      "results": [
+        {
+          "word": "able",
+          "distance": 1
+        },
+        {
+          "word": "acle",
+          "distance": 1
+        },
+        {
+          "word": "aile",
+          "distance": 1
+        },
+        {
+          "word": "ale",
+          "distance": 1
+        },
+        {
+          "word": "alle",
+          "distance": 1
+        }
+      ]
+    },
+    {
+      "query": "dictionry",
+      "milliseconds": [
+        30.142,
+        28.608,
+        28.972
+      ],
+      "median_ms": 28.972,
+      "results": [
+        {
+          "word": "dictionary",
+          "distance": 1
+        },
+        {
+          "word": "diction",
+          "distance": 2
+        },
+        {
+          "word": "dictional",
+          "distance": 2
+        },
+        {
+          "word": "dictions",
+          "distance": 2
+        },
+        {
+          "word": "fictionary",
+          "distance": 2
+        }
+      ]
+    },
+    {
+      "query": "accomodation",
+      "milliseconds": [
+        35.719,
+        42.94,
+        37.705
+      ],
+      "median_ms": 37.705,
+      "results": [
+        {
+          "word": "accommodation",
+          "distance": 1
+        },
+        {
+          "word": "accommodations",
+          "distance": 2
+        },
+        {
+          "word": "accombination",
+          "distance": 3
+        },
+        {
+          "word": "accommodating",
+          "distance": 3
+        },
+        {
+          "word": "accommodational",
+          "distance": 3
+        }
+      ]
+    },
+    {
+      "query": "photosyntheis",
+      "milliseconds": [
+        86.801,
+        94.512,
+        83.483
+      ],
+      "median_ms": 86.801,
+      "results": [
+        {
+          "word": "photosynthesis",
+          "distance": 1
+        },
+        {
+          "word": "photosyntheses",
+          "distance": 2
+        },
+        {
+          "word": "photosynthetic",
+          "distance": 2
+        },
+        {
+          "word": "phytosynthesis",
+          "distance": 2
+        },
+        {
+          "word": "photosynthate",
+          "distance": 3
+        }
+      ]
+    },
+    {
+      "query": "zzzzzzzzzz",
+      "milliseconds": [
+        246.811,
+        244.858,
+        246.91
+      ],
+      "median_ms": 246.811,
+      "results": [
+        {
+          "word": "pizzazz",
+          "distance": 6
+        },
+        {
+          "word": "pizzazzes",
+          "distance": 6
+        },
+        {
+          "word": "razzmatazz",
+          "distance": 6
+        },
+        {
+          "word": "bezazz",
+          "distance": 7
+        },
+        {
+          "word": "bezazzes",
+          "distance": 7
+        }
+      ]
+    },
+    {
+      "query": "qzxvbnmlkjhgfdsa",
+      "milliseconds": [
+        875.252,
+        810.105,
+        790.522
+      ],
+      "median_ms": 810.105,
+      "results": [
+        {
+          "word": "bulkheads",
+          "distance": 10
+        },
+        {
+          "word": "backhands",
+          "distance": 11
+        },
+        {
+          "word": "baldheads",
+          "distance": 11
+        },
+        {
+          "word": "billheads",
+          "distance": 11
+        },
+        {
+          "word": "blackheads",
+          "distance": 11
+        }
+      ]
+    },
+    {
+      "query": "abcdefghijklmno",
+      "milliseconds": [
+        559.613,
+        533.863,
+        538.223
+      ],
+      "median_ms": 538.223,
+      "results": [
+        {
+          "word": "abadejo",
+          "distance": 9
+        },
+        {
+          "word": "abadengo",
+          "distance": 9
+        },
+        {
+          "word": "abderian",
+          "distance": 9
+        },
+        {
+          "word": "abseiling",
+          "distance": 9
+        },
+        {
+          "word": "absterging",
+          "distance": 9
+        }
+      ]
+    },
+    {
+      "query": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "milliseconds": [
+        555.987,
+        576.222,
+        551.035
+      ],
+      "median_ms": 555.987,
+      "results": [
+        {
+          "word": "hexahydroxycyclohexane",
+          "distance": 47
+        },
+        {
+          "word": "xxx",
+          "distance": 47
+        },
+        {
+          "word": "adnexopexy",
+          "distance": 48
+        },
+        {
+          "word": "auxotox",
+          "distance": 48
+        },
+        {
+          "word": "coexecutrix",
+          "distance": 48
+        }
+      ]
+    },
+    {
+      "query": "pneumonoultramicroscopicsilicovolcanoconiosis",
+      "milliseconds": [
+        505.413,
+        502.575,
+        515.769
+      ],
+      "median_ms": 505.413,
+      "results": [
+        {
+          "word": "ultramicroscopically",
+          "distance": 27
+        },
+        {
+          "word": "ultramicroscopical",
+          "distance": 28
+        },
+        {
+          "word": "nonmicroscopically",
+          "distance": 29
+        },
+        {
+          "word": "pneumonoconiosis",
+          "distance": 29
+        },
+        {
+          "word": "pneumonomelanosis",
+          "distance": 29
+        }
+      ]
+    }
+  ],
+  "final_memory_mib": {
+    "working_set": 290.82,
+    "peak_working_set": 290.82
+  }
+}

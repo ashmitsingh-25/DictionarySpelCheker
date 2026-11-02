@@ -1,4 +1,6 @@
 import unittest
+import itertools
+import random
 
 from algorithms import Trie, levenshtein_distance, suggest_words
 
@@ -31,6 +33,39 @@ class TrieTests(unittest.TestCase):
 
 
 class DistanceTests(unittest.TestCase):
+    def assert_matches_reference(self, words, queries):
+        trie = Trie()
+        for word in words:
+            trie.insert(word)
+        for query in queries:
+            for limit in [1, 3, 5, 20]:
+                expected = [{'word': word, 'distance': distance} for distance, word in
+                            sorted((levenshtein_distance(query, word), word)
+                                   for word in set(words))[:min(limit, 5)]]
+                with self.subTest(query=query, limit=limit):
+                    self.assertEqual(suggest_words(query, trie, limit), expected)
+
+    def test_exact_search_against_exhaustive_reference(self):
+        words = [''.join(chars) for length in range(1, 5)
+                 for chars in itertools.product('ab', repeat=length)]
+        queries = [''.join(chars) for length in range(6)
+                   for chars in itertools.product('ab', repeat=length)]
+        self.assert_matches_reference(words, queries + ['zzzzzzzz', 'x' * 50])
+
+    def test_random_dictionaries_against_brute_force(self):
+        rng = random.Random(2026)
+        for _ in range(30):
+            words = [''.join(rng.choices('abcdxyz', k=rng.randint(1, 12)))
+                     for _ in range(rng.randint(1, 60))]
+            rng.shuffle(words)  # Correctness must not depend on insertion order.
+            queries = [''.join(rng.choices('abcdxyz', k=rng.randint(1, 15)))
+                       for _ in range(10)]
+            self.assert_matches_reference(words, queries)
+
+    def test_distant_matches_and_final_distance_ties(self):
+        self.assert_matches_reference(['zzzz', 'yyyy', 'xxxx', 'wwww', 'vvvv', 'uuuu'],
+                                      ['aaaaaaaa', '', 'u'])
+
     def test_known_distances_and_symmetry(self):
         cases = [('', '', 0), ('', 'cat', 3), ('cat', 'cat', 0),
                  ('cat', 'cats', 1), ('cat', 'cut', 1),
@@ -42,13 +77,16 @@ class DistanceTests(unittest.TestCase):
                 self.assertEqual(levenshtein_distance(second, first), expected)
 
     def test_rank_distance_then_alphabetical_and_cap_five(self):
-        result = suggest_words('cat', ['cut', 'cat', 'bat', 'car', 'cats', 'hat', 'cat'], 20)
+        trie = Trie()
+        for word in ['cut', 'cat', 'bat', 'car', 'cats', 'hat', 'cat']:
+            trie.insert(word)
+        result = suggest_words('cat', trie, 20)
         self.assertEqual(result, [
             {'word': 'cat', 'distance': 0}, {'word': 'bat', 'distance': 1},
             {'word': 'car', 'distance': 1}, {'word': 'cats', 'distance': 1},
             {'word': 'cut', 'distance': 1}])
-        self.assertEqual(suggest_words('cat', []), [])
-        self.assertEqual(suggest_words('cat', ['cat'], 0), [])
+        self.assertEqual(suggest_words('cat', Trie()), [])
+        self.assertEqual(suggest_words('cat', trie, 0), [])
 
 
 if __name__ == '__main__':

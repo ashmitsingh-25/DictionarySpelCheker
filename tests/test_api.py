@@ -45,6 +45,12 @@ class ApiTests(unittest.TestCase):
             {'word': 'car', 'distance': 1}, {'word': 'cats', 'distance': 1},
             {'word': 'cut', 'distance': 1}])
 
+    def test_suggestions_include_five_distant_matches(self):
+        result = self.client.get('/api/suggestions?word=zzzzzzzzzz')
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(len(result.json['suggestions']), 5)
+        self.assertTrue(all(item['distance'] > 2 for item in result.json['suggestions']))
+
     def test_invalid_query_values(self):
         for endpoint, parameter in [('search', 'word'), ('suggestions', 'word'), ('autocomplete', 'prefix')]:
             for value in ['', 'two words', 'abc123', '<script>', 'é', 'a' * 51]:

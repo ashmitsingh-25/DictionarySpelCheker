@@ -1,0 +1,4 @@
+# Preserve the pinned dictionary checksum on Windows and Unix checkouts.
+dictionary.txt text eol=lf
+# Keep the upstream provenance document verbatim, including its trailing space.
+data/english-words-README.md -whitespace
