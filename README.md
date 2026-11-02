@@ -327,3 +327,32 @@ a live public application URL. GitHub Pages cannot run this Python backend.
 Public deployment is a separate task requiring a Python-capable hosting service,
 a production WSGI server, HTTPS, and protections appropriate
 for the exposed API. No public deployment URL is provided by this project.
+
+### Vercel deployment
+
+Vercel discovers the module-level Flask instance named `app` in the root `app.py`.
+The project retains `create_app()` for tests and configuration, then exposes
+`app = create_app()` outside the `if __name__ == "__main__"` block. That block
+calls `app.run(...)` only for local development; importing the module does not
+start the development server. See [Vercel's Flask documentation](https://vercel.com/docs/frameworks/backend/flask).
+
+Import this GitHub repository into Vercel, or use its existing connected project.
+Set the Root Directory to the repository root containing `app.py` and
+`requirements.txt`, and use Vercel's Flask framework detection. Keep
+`dictionary.txt`, `templates/`, and `static/` in the deployment source. No API key
+or environment variable is required by this application.
+
+For `FLASK_ENTRYPOINT_NOT_FOUND`, deploy the latest commit containing the
+module-level instance. If a connected Git push does not trigger deployment,
+redeploy the latest commit from the Vercel dashboard. Check build/runtime logs,
+then verify `/`, `/api/search?word=apple`, and `/api/definitions?word=apple` on the
+deployment URL. A successful Git push alone does not confirm deployment success.
+
+Verify the entrypoint locally with:
+
+```powershell
+.\.venv\Scripts\python.exe -c "from app import app; from flask import Flask; assert isinstance(app, Flask); print('Flask entrypoint OK')"
+```
+
+The definition cache is in memory and may be reset or differ between serverless
+instances. Online definitions still require outbound internet access.
